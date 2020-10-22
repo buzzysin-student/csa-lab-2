@@ -17,7 +17,7 @@ func sendMessages(receiver chan string) {
 	for _, m := range messages {
 		fmt.Println("sendMessages is sending:", m)
 		receiver <- m
-		
+
 	}
 }
 
@@ -35,4 +35,31 @@ func main() {
 		receivedMessage := <-messages
 		fmt.Println("Main has received:", receivedMessage)
 	}
+
+	// ? Question 1b -
+	// ? Only 2 messags are receieved
+	fmt.Println("===== [Question 1b] =====")
+	// go sendMessages(messages)
+	for i := 0; i < 2; i++ {
+		// time.Sleep(1 * time.Second)
+		// receivedMessage := <-messages
+		// fmt.Println("Main has received:", receivedMessage)
+	}
+	// * The goroutine still sends the third message but
+	// * it is not received
+	<- messages // get rid of the last message for the next exercise
+
+	// ? Question 1c -
+	// ? Try to receieve 4 messages
+	fmt.Println("===== [Question 1c] =====")
+	go sendMessages(messages)
+	for i := 0; i < 4; i++ {
+		time.Sleep(1 * time.Second)
+		receivedMessage := <- messages
+		fmt.Println("Main has received:", receivedMessage)
+	}
+	// * The goroutine has no more messages to send
+	// * so it fails to produce an output
+
+
 }

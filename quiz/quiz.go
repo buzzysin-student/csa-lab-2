@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // question struct stores a single question and its corresponding answer.
@@ -38,7 +39,9 @@ func questions() []question {
 }
 
 // ask asks a question and returns an updated score depending on the answer.
-func ask(s score, question question) score {
+func ask(s chan score, question question) {
+	fmt.Println("Asking a question...")
+	toUpdate := <-s
 	fmt.Println(question.q)
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter answer: ")
@@ -46,18 +49,50 @@ func ask(s score, question question) score {
 	text := scanner.Text()
 	if strings.Compare(text, question.a) == 0 {
 		fmt.Println("Correct!")
-		s++
+		toUpdate++
+		s <- toUpdate
 	} else {
 		fmt.Println("Incorrect :-(")
 	}
-	return s
 }
 
 func main() {
 	s := score(0)
 	qs := questions()
-	for _, q := range qs {
-		s = ask(s, q)
+	startTime := time.Now()
+	elapsed := 0 * time.Second
+
+	current := 0
+	qChannel := make(chan question)
+	sChannel := make(chan score)
+
+	// ? Declare to the program that
+	// ? sChannel will be listened to
+	// ? from here on out
+	go ask(sChannel, qs[current])
+	sChannel <- s
+
+	finished := false
+	for !finished {
+		select {
+		case question := <-qChannel:
+			fmt.Println("Asking question", current+1)
+			go ask(sChannel, question)
+			current++
+			if current == len(qs) {
+				finished = true
+			} else {
+				qChannel <- qs[current]
+			}
+		case newS := <-sChannel:
+			s = newS
+		default:
+			elapsed = time.Since(startTime)
+			if elapsed >= 5*time.Second {
+				finished = true
+				fmt.Println("You ran out of time!")
+			}
+		}
 	}
 	fmt.Println("Final score", s)
 }
